@@ -1,0 +1,17 @@
+.node {
+  fill: #555;
+}
+
+.mainNode {
+  fill: #b6123a;
+}
+
+.link {
+  stroke: #ddd;
+}
+
+.label {
+  fill: #555;
+  font-family: "Lucida Sans", Verdana, sans-serif;
+  font-size: 12px;
+}
