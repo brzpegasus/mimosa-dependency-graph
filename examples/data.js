@@ -3,13 +3,13 @@
 
   window.data = {
     nodes: [
-      { label: 'main' },
-      { label: 'app/repo-view' },
-      { label: 'jquery' },
-      { label: 'lodash' },
-      { label: 'moment' },
-      { label: 'templates' },
-      { label: 'vendor/handlebars' }
+      { filename: 'main' },
+      { filename: 'app/repo-view' },
+      { filename: 'vendor/jquery' },
+      { filename: 'vendor/lodash' },
+      { filename: 'vendor/moment' },
+      { filename: 'templates' },
+      { filename: 'vendor/handlebars' }
     ],
     links: [
       { source: 0, target: 1 },
@@ -20,5 +20,4 @@
       { source: 5, target: 6 }
     ]
   };
-
 }(this));

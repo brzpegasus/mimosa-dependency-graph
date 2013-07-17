@@ -1,17 +1,21 @@
-.node {
-  fill: #555;
-}
-
-.mainNode {
-  fill: #b6123a;
-}
-
-.link {
+path.link {
+  fill: none;
   stroke: #ddd;
+  stroke-width: 1px;
 }
 
-.label {
+marker.arrow {
+  fill: #aaa;
+}
+
+circle {
   fill: #555;
-  font-family: "Lucida Sans", Verdana, sans-serif;
-  font-size: 12px;
+  stroke: #fff;
+  stroke-width: 1.5px;
+}
+
+text {
+  fill: #555;
+  font: 11px sans-serif;
+  pointer-events: none;
 }

@@ -1,164 +1,89 @@
 (function(window) {
   "use strict";
 
-  var randomizeLinkWeight = function(links) {
-    links.forEach(function(link) {
-      link.weight = Math.random();
-    });
-  };
-
-  var generateLabelAnchors = function(nodes) {
-    var anchorNodes = [],
-        anchorLinks = [];
-
-    nodes.forEach(function(node, i) {
-      anchorNodes.push({ node : node }, { node : node });
-      anchorLinks.push({
-        source : i * 2,
-        target : i * 2 + 1,
-        weight : 1
-      });
-    });
-
-    return {
-      nodes: anchorNodes,
-      links: anchorLinks
-    };
-  };
-
   window.DependencyGraph = function(options) {
     options = options || {};
 
-    var dependencyData = options.data || {};
-    var labelAnchorData = generateLabelAnchors(dependencyData.nodes);
-
-    randomizeLinkWeight(data.links);
-
     var d3 = window.d3,
+        data = options.data || {},
         scale = options.scale || 1,
-        width = options.width || 800,
+        width = options.width || 960,
         height = options.height || 500,
         layers = {};
 
     var svg = d3.select('body').append('svg');
 
-    // Dependency nodes
     layers.nodes = function(force) {
-      var nodes = svg.selectAll('g.node').data(force.nodes());
+      var nodes = svg.selectAll(".node")
+        .data(force.nodes())
+        .enter().append("g")
+          .attr("class", "node")
+          .call(force.drag);
 
-      nodes.enter()
-        .append('g')
-        .append('circle')
-        .attr('r', function(d) {
-          return (d.index === 0 ? 8 : 5) * scale;
-        })
-        .attr('class', function(d) {
-          return (d.index === 0 ? 'mainNode' : 'node');
-        })
-        .call(force.drag);
-      
+      nodes.append("circle").attr("r", 5);
+
+      nodes.append("text")
+        .attr("x", 12)
+        .attr("dy", ".35em")
+        .text(function(d) { return d.filename; });
+
       return nodes;
     };
 
-    // Dependency links
     layers.links = function(force) {
-      var links = svg.selectAll('line.link').data(force.links());
+      svg.append("svg:defs").selectAll("marker")
+        .data(["end"])
+        .enter().append("svg:marker")
+          .attr("id", String)
+          .attr("viewBox", "0 -5 10 10")
+          .attr("refX", 20)
+          .attr("refY", -1.5)
+          .attr("markerWidth", 6)
+          .attr("markerHeight", 6)
+          .attr("orient", "auto")
+          .attr("class", "arrow")
+        .append("svg:path")
+          .attr("d", "M0,-5L10,0L0,5");
 
-      links.enter().append('line').attr('class', 'link');
+      var links = svg.append("svg:g").selectAll("path")
+          .data(force.links())
+        .enter().append("svg:path")
+          .attr("class", "link")
+          .attr("marker-end", "url(#end)");
 
       return links;
     }
 
-    // Label anchor nodes
-    layers.labelAnchorNodes = function(force) {
-      var anchorNodes = svg.selectAll('g.anchorNode').data(force.nodes());
-
-      var enteringAnchorNodes = anchorNodes.enter()
-        .append('g').attr('class', 'anchorNode');
-
-      enteringAnchorNodes.append('circle').attr('r', 0);
-
-      enteringAnchorNodes.append('text')
-        .text(function(d, i) {
-          return i % 2 === 0 ? '' : d.node.label;
-        })
-        .attr('class', 'label');
-
-      return anchorNodes;
-    }
-
-    // Label anchor links
-    layers.labelAnchorLinks = function(force) {
-      return svg.selectAll('line.anchorLink').data(force.links());
-    }
-
     function graph() {
-      var dependencyForce = d3.layout.force()
-        .size([width, height])
-        .gravity(0.05)
-        .charge(-300 * scale)
-        .linkDistance(50 * scale)
+      var force = d3.layout.force()
         .nodes(data.nodes)
         .links(data.links)
-        .start();
-
-      var labelAnchorForce = d3.layout.force()
         .size([width, height])
-        .gravity(0)
-        .charge(-100 * scale)
-        .linkDistance(15 * scale)
-        .linkStrength(8)
-        .nodes(labelAnchorData.nodes)
-        .links(labelAnchorData.links)
+        .linkDistance(80 * scale)
+        .charge(-300 * scale)
+        .on("tick", tick)
         .start();
 
-      var links = layers.links(dependencyForce);
-      var nodes = layers.nodes(dependencyForce);
-      var anchorLinks = layers.labelAnchorLinks(labelAnchorForce);
-      var anchorNodes = layers.labelAnchorNodes(labelAnchorForce);
+      var links = layers.links(force);
+      var nodes = layers.nodes(force);
 
-      dependencyForce.on('tick', function() {
-        var updateLinks = function() {
-          this.attr('x1', function(d) { return d.source.x; })
-              .attr('y1', function(d) { return d.source.y; })
-              .attr('x2', function(d) { return d.target.x; })
-              .attr('y2', function(d) { return d.target.y; });
-        }
-
-        var updateNodes = function() {
-          this.attr('transform', function(d) {
-            return 'translate(' + d.x + ',' + d.y + ')';
-          });
-        }
-
-        labelAnchorForce.start();
-
-        nodes.call(updateNodes);
-
-        anchorNodes.each(function(d, i) {
-          if (i % 2 === 0) {
-            d.x = d.node.x;
-            d.y = d.node.y;
-          } else {
-            var b = this.childNodes[1].getBBox();
-
-            var diffX = d.x - d.node.x;
-            var diffY = d.y - d.node.y;
-
-            var dist = Math.sqrt(diffX * diffX + diffY * diffY);
-
-            var shiftX = b.width * (diffX - dist) / (dist * 2);
-            shiftX = Math.max(-b.width, Math.min(0, shiftX));
-            var shiftY = 5;
-            this.childNodes[1].setAttribute('transform', 'translate(' + shiftX + ',' + shiftY + ')');
-          }
+      function tick() {
+        links.attr("d", function(d) {
+          var dx = d.target.x - d.source.x,
+              dy = d.target.y - d.source.y,
+              dr = Math.sqrt(dx * dx + dy * dy);
+          return "M" + 
+              d.source.x + "," + 
+              d.source.y + "A" + 
+              dr + "," + dr + " 0 0,1 " + 
+              d.target.x + "," + 
+              d.target.y;
         });
 
-        anchorNodes.call(updateNodes);
-
-        links.call(updateLinks);
-        anchorLinks.call(updateLinks);
-      });
+        nodes.attr("transform", function(d) {
+          return "translate(" + d.x + "," + d.y + ")";
+        });
+      }
     }
 
     graph.scale = function(newScale) {
@@ -187,10 +112,11 @@
       return this;
     };
 
+    graph.scale(scale);
     graph.width(width);
     graph.height(height);
 
-    svg.attr('transform', 'translate(' + width / 2 + ',' + height / 2 + ')');
+    svg.attr("transform", "translate(" + width / 2 + "," + height / 2 + ")");
 
     return graph;
   };
