@@ -11,7 +11,6 @@ utils  = require './utils'
 
 mimosaRequire = null
 basePath = null
-data = null
 dataFile = 'data.js'
 
 assets = [
@@ -30,11 +29,10 @@ registration = (mimosaConfig, register) ->
   basePath = mimosaConfig.watch.compiledJavascriptDir
   ext = mimosaConfig.extensions
 
-  register ['postBuild'], 'beforeOptimize',  _generateGraphData
   register ['postBuild'], 'beforeOptimize',  _writeStaticAssets
-  register ['postBuild'], 'beforeOptimize',  _writeGraphDataFile
+  register ['postBuild'], 'beforeOptimize',  _generateGraphData
 
-  # register ['add','update', 'remove'], 'afterWrite', _writeGraphDataFile, ext.javascript
+  register ['add','update', 'remove'], 'afterWrite', _generateGraphData, ext.javascript
 
   # TODO clean?
 
@@ -60,6 +58,11 @@ _generateGraphData = (mimosaConfig, options, next) ->
       source: nodes.indexOf link.source
       target: nodes.indexOf link.target
 
+  # Output the dependency graph data to a file in the assets folder
+  filename = path.join config.assetFolderFull, dataFile
+  fs.writeFileSync filename, "window.MIMOSA_DEPENDENCY_DATA = #{JSON.stringify(data, null, 2)}"
+  logger.info "Created file [[ #{filename} ]]"
+
   next()
 
 # Write all necessary html, js, css files to the assets folder
@@ -75,13 +78,6 @@ _writeStaticAssets = (mimosaConfig, options, next) ->
     outFile = path.join config.assetFolderFull, asset
     utils.copyFile inFile, outFile
 
-  next()
-
-# Output the dependency graph data to a file in the assets folder
-_writeGraphDataFile = (mimosaConfig, options, next) ->
-  filename = path.join config.assetFolderFull, dataFile
-  fs.writeFileSync filename, "window.MIMOSA_DEPENDENCY_DATA = #{JSON.stringify(data, null, 2)}"
-  logger.info "Created file [[ #{filename} ]]"
   next()
 
 module.exports =
