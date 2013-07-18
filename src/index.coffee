@@ -1,12 +1,26 @@
-"use strict"
+'use strict'
 
-path = require 'path'
+fs     = require 'fs'
+path   = require 'path'
 
+_      = require 'lodash'
 logger = require 'logmimosa'
-_ = require 'lodash'
+
+config = require './config'
+utils  = require './utils'
 
 mimosaRequire = null
-basePath = ''
+basePath = null
+data = null
+dataFile = 'data.js'
+
+assets = [
+  "d3.v3.min.js"
+  "dependency_graph.js"
+  "main.js"
+  "main.css"
+  "index.html"
+]
 
 registration = (mimosaConfig, register) ->
   mimosaRequire = mimosaConfig.installedModules['mimosa-require']
@@ -14,19 +28,24 @@ registration = (mimosaConfig, register) ->
     return logger.error "mimosa-dependency-graph is configured but cannot be used unless mimosa-require is installed and used."
   
   basePath = mimosaConfig.watch.compiledJavascriptDir
+  ext = mimosaConfig.extensions
 
-  register ['postBuild'], 'beforeOptimize',  _renderDependencyGraph
+  register ['postBuild'], 'beforeOptimize',  _generateGraphData
+  register ['postBuild'], 'beforeOptimize',  _writeStaticAssets
+  register ['postBuild'], 'beforeOptimize',  _writeGraphDataFile
 
-_renderDependencyGraph = (mimosaConfig, options, next) ->
-  dependencyInfo = _getDependencyInfo()
-  data = _buildGraphData dependencyInfo
-  console.log data
-  next()
+  # register ['add','update', 'remove'], 'afterWrite', _writeGraphDataFile, ext.javascript
 
-_getDependencyInfo = ->
-  mimosaRequire.dependencyInfo()
+  # TODO clean?
 
-_buildGraphData = (dependencyInfo) ->
+# Generate an object containing nodes and links data that can be used
+# to construct a d3.js force-directed graph.
+#
+# In this case, `nodes` is just an array of module names, while `links`
+# is an array of objects that specify the dependency between a module
+# (source) and another (target).
+_generateGraphData = (mimosaConfig, options, next) ->
+  dependencyInfo = mimosaRequire.dependencyInfo()
   nodes = []
   links = []
 
@@ -36,14 +55,37 @@ _buildGraphData = (dependencyInfo) ->
 
   data =
     nodes: for node in (nodes = _.uniq(nodes))
-      filename: _formatFilename node
+      filename: utils.formatFilename node, basePath
     links: for link in links
       source: nodes.indexOf link.source
       target: nodes.indexOf link.target
 
-_formatFilename = (filename) ->
-  filename = path.relative basePath, filename
-  filename.replace /\\/g, '/'
+  next()
+
+# Write all necessary html, js, css files to the assets folder
+_writeStaticAssets = (mimosaConfig, options, next) ->
+  config = mimosaConfig.dependencyGraph
+
+  utils.mkdirIfNotExists config.assetFolderFull
+
+  assets.filter (asset) ->
+    config.safeAssets.indexOf asset is -1
+  .forEach (asset) ->
+    inFile = path.join __dirname, '..', 'assets', asset
+    outFile = path.join config.assetFolderFull, asset
+    utils.copyFile inFile, outFile
+
+  next()
+
+# Output the dependency graph data to a file in the assets folder
+_writeGraphDataFile = (mimosaConfig, options, next) ->
+  filename = path.join config.assetFolderFull, dataFile
+  fs.writeFileSync filename, "window.MIMOSA_DEPENDENCY_DATA = #{JSON.stringify(data, null, 2)}"
+  logger.info "Created file [[ #{filename} ]]"
+  next()
 
 module.exports =
   registration: registration
+  defaults:     config.defaults
+  placeholder:  config.placeholder
+  validate:     config.validate
