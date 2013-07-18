@@ -12,7 +12,7 @@ exports.placeholder = ->
   \t
 
     # dependencyGraph:                              # Configuration for the dependency-graph module
-      # assetFolder: ".mimosa/dependency_graph"    # Output directory for all generated assets
+      # assetFolder: ".mimosa/dependency_graph"     # Output directory for all generated assets
       # safeAssets: []                              # If you customized any of the assets (e.g. main.css)
                                                     # and don't want mimosa to overwrite them, list them
                                                     # out here (e.g. safeAssets: ["main.css"]).
