@@ -11,7 +11,7 @@
         height = options.height || 500,
         layers = {};
 
-    var svg = d3.select('body').append('svg');
+    var svg = d3.select("body").append("svg");
 
     layers.nodes = function(force) {
       var nodes = svg.selectAll(".node")
@@ -46,7 +46,7 @@
           .attr("d", "M0,-5L10,0L0,5");
 
       var links = svg.append("svg:g").selectAll("path")
-          .data(force.links())
+        .data(force.links())
         .enter().append("svg:path")
           .attr("class", "link")
           .attr("marker-end", "url(#end)");
