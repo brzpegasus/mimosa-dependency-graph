@@ -1,6 +1,5 @@
 'use strict'
 
-fs     = require 'fs'
 path   = require 'path'
 
 _      = require 'lodash'
@@ -11,7 +10,7 @@ utils  = require './utils'
 
 mimosaRequire = null
 basePath = null
-dataFile = 'data.js'
+dataFile = null
 
 assets = [
   "d3.v3.min.js"
@@ -27,14 +26,14 @@ registration = (mimosaConfig, register) ->
     return logger.error "mimosa-dependency-graph is configured but cannot be used unless mimosa-require is installed and used."
   
   basePath = mimosaConfig.watch.compiledJavascriptDir
+  dataFile = path.join mimosaConfig.dependencyGraph.assetFolderFull, 'data.js'
+
   ext = mimosaConfig.extensions
 
   register ['postBuild'], 'beforeOptimize',  _writeStaticAssets
   register ['postBuild'], 'beforeOptimize',  _generateGraphData
 
   register ['add','update', 'remove'], 'afterWrite', _generateGraphData, ext.javascript
-
-  # TODO clean?
 
 # Generate an object containing nodes and links data that can be used
 # to construct a d3.js force-directed graph.
@@ -59,9 +58,7 @@ _generateGraphData = (mimosaConfig, options, next) ->
       target: nodes.indexOf link.target
 
   # Output the dependency graph data to a file in the assets folder
-  filename = path.join config.assetFolderFull, dataFile
-  fs.writeFileSync filename, "window.MIMOSA_DEPENDENCY_DATA = #{JSON.stringify(data, null, 2)}"
-  logger.info "Created file [[ #{filename} ]]"
+  utils.writeFile dataFile, "window.MIMOSA_DEPENDENCY_DATA = #{JSON.stringify(data, null, 2)}"
 
   next()
 
