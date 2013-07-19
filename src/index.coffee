@@ -6,7 +6,7 @@ _      = require 'lodash'
 logger = require 'logmimosa'
 
 config = require './config'
-utils  = require './utils'
+util  = require './util'
 
 mimosaRequire = null
 basePath = null
@@ -52,13 +52,13 @@ _generateGraphData = (mimosaConfig, options, next) ->
 
   data =
     nodes: for node in (nodes = _.uniq(nodes))
-      filename: utils.formatFilename node, basePath
+      filename: util.formatFilename node, basePath
     links: for link in links
       source: nodes.indexOf link.source
       target: nodes.indexOf link.target
 
   # Output the dependency graph data to a file in the assets folder
-  utils.writeFile dataFile, "window.MIMOSA_DEPENDENCY_DATA = #{JSON.stringify(data, null, 2)}"
+  util.writeFile dataFile, "window.MIMOSA_DEPENDENCY_DATA = #{JSON.stringify(data, null, 2)}"
 
   next()
 
@@ -66,14 +66,14 @@ _generateGraphData = (mimosaConfig, options, next) ->
 _writeStaticAssets = (mimosaConfig, options, next) ->
   config = mimosaConfig.dependencyGraph
 
-  utils.mkdirIfNotExists config.assetFolderFull
+  util.mkdirIfNotExists config.assetFolderFull
 
   assets.filter (asset) ->
     config.safeAssets.indexOf asset is -1
   .forEach (asset) ->
     inFile = path.join __dirname, '..', 'assets', asset
     outFile = path.join config.assetFolderFull, asset
-    utils.copyFile inFile, outFile
+    util.copyFile inFile, outFile
 
   next()
 
