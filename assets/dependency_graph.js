@@ -17,6 +17,7 @@
 
       this._width = this.base.attr('width') || window.innerWidth;
       this._height = this.base.attr('height') || window.innerHeight;
+      this._baseRadius = 6;
 
       // Zooming (with mouse wheel, ctrl + dblclick / shift + dblclick, or panning gestures)
       var zoom = d3.behavior.zoom()
@@ -111,19 +112,41 @@
             })
             .call(chart.force.drag);
 
-          node.append('circle')
-            .attr('r', 5);
-
           return node;
         },
         events: {
           enter: function() {
-            return this.append('text')
-              .attr('x', 12)
+            this.append('circle')
+              .attr('r', function(d) {
+                return chart._baseRadius + d.children.length;
+              })
+              .attr('class', function(d) {
+                return d.parents.length ? '' : 'main';
+              });
+
+            this.append('text')
+              .attr('x', function(d) {
+                return 5 + chart._baseRadius + d.children.length;
+              })
               .attr('dy', '.35em')
+              .classed('shadow', true)
               .text(function(d) {
                 return d.filename;
               });
+
+            this.append('text')
+              .attr('x', function(d) {
+                return 5 + chart._baseRadius + d.children.length;
+              })
+              .attr('dy', '.35em')
+              .classed('main', function(d) {
+                return d.parents.length ? '' : 'main';
+              })
+              .text(function(d) {
+                return d.filename;
+              });
+
+            return this;
           }
         }
       });
@@ -156,7 +179,16 @@
      * @returns {Object} The transformed data.
      */
     transform: function(data) {
-      // Simple pass-through for now
+      data.nodes.forEach(function(node) {
+        node.parents = [];
+        node.children = [];
+      });
+
+      data.links.forEach(function(link) {
+        data.nodes[link.source].children.push(link.target);
+        data.nodes[link.target].parents.push(link.source);
+      });
+
       return data;
     },
 

@@ -5,22 +5,40 @@ body {
 
 path.link {
   fill: none;
-  stroke: #ddd;
-  stroke-width: 1px;
-}
-
-marker.arrow {
-  fill: #aaa;
-}
-
-circle {
-  fill: #555;
-  stroke: #fff;
+  stroke: #DED9AF;
   stroke-width: 1.5px;
 }
 
+marker.arrow {
+  fill: #DED9AF;
+}
+
+circle {
+  fill: #C4C5CA;
+  stroke: #98A0A7;
+  stroke-width: 1.5px;
+}
+
+circle.main {
+  fill: #4682B4;
+  stroke: #0F4080;
+  stroke-width: 2px;
+}
+
 text {
-  fill: #555;
+  fill: #71747E;
   font: 11px sans-serif;
   pointer-events: none;
+}
+
+text.main {
+  fill: #0F4080;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+text.shadow {
+  stroke: #fff;
+  stroke-width: 2px;
+  opacity: 0.9;
 }
