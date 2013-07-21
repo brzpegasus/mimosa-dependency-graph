@@ -43,7 +43,7 @@ registration = (mimosaConfig, register) ->
 # is an array of objects that specify the dependency between a module
 # (source) and another (target).
 _generateGraphData = (mimosaConfig, options, next) ->
-  dependencyInfo = mimosaRequire.dependencyInfo()
+  dependencyInfo = _getDependencyInfo mimosaConfig
   nodes = []
   links = []
 
@@ -77,6 +77,16 @@ _writeStaticAssets = (mimosaConfig, options, next) ->
     util.copyFile inFile, outFile
 
   next()
+
+_getDependencyInfo = (mimosaConfig) ->
+  config = mimosaConfig.dependencyGraph
+  dependencyInfo = {}
+
+  for module, dependencies of mimosaRequire.dependencyInfo()
+    unless (config.excludeRegex? and module.match config.excludeRegex) or (config.exclude.indexOf(module) > -1)
+      dependencyInfo[module] = dependencies
+
+  dependencyInfo
 
 module.exports =
   registration: registration
