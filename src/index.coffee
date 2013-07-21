@@ -13,7 +13,8 @@ basePath = null
 dataFile = null
 
 assets = [
-  "d3.v3.min.js"
+  "d3.min.js"
+  "d3.chart.min.js"
   "dependency_graph.js"
   "main.js"
   "main.css"
