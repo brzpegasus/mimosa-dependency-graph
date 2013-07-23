@@ -43,17 +43,21 @@ registration = (mimosaConfig, register) ->
 # is an array of objects that specify the dependency between a module
 # (source) and another (target).
 _generateGraphData = (mimosaConfig, options, next) ->
+  config = mimosaConfig.dependencyGraph
   dependencyInfo = _getDependencyInfo mimosaConfig
+
   nodes = []
   links = []
 
-  for module, dependencies of dependencyInfo
-    nodes.push module, dependencies...
-    links.push { source: module, target: dep } for dep in dependencies
+  for module, dependencies of dependencyInfo.registry
+    unless _skipModule mimosaConfig, module
+      nodes.push module, dependencies...
+      links.push { source: module, target: dep } for dep in dependencies
 
   data =
-    nodes: for node in (nodes = _.uniq(nodes))
+    nodes: for node in (nodes = _.uniq nodes)
       filename: util.formatFilename node, basePath
+      main: dependencyInfo.mainFiles.indexOf(node) > -1
     links: for link in links
       source: nodes.indexOf link.source
       target: nodes.indexOf link.target
@@ -79,14 +83,13 @@ _writeStaticAssets = (mimosaConfig, options, next) ->
   next()
 
 _getDependencyInfo = (mimosaConfig) ->
-  config = mimosaConfig.dependencyGraph
-  dependencyInfo = {}
+  mimosaRequire.dependencyInfo mimosaConfig
 
-  for module, dependencies of mimosaRequire.dependencyInfo()
-    unless (config.excludeRegex? and module.match config.excludeRegex) or (config.exclude.indexOf(module) > -1)
-      dependencyInfo[module] = dependencies
+_skipModule = (mimosaConfig, module) ->
+  excludeRegexes = mimosaConfig.dependencyGraph.excludeRegex
+  excludeStrings = mimosaConfig.dependencyGraph.exclude
 
-  dependencyInfo
+  (excludeRegexes? and module.match excludeRegexes) or (excludeStrings.indexOf(module) > -1)
 
 module.exports =
   registration: registration

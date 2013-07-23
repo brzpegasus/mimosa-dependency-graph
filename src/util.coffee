@@ -8,7 +8,7 @@ logger = require 'logmimosa'
 
 exports.formatFilename = (filename, basePath) ->
   filename = path.relative basePath, filename
-  filename.split(path.sep).join('/')
+  filename.replace(/\.js$/, '').split(path.sep).join '/'
 
 exports.mkdirIfNotExists = (dir) ->
   unless fs.existsSync dir

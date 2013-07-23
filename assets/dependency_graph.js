@@ -121,7 +121,7 @@
                 return chart._baseRadius + d.children.length;
               })
               .attr('class', function(d) {
-                return d.parents.length ? '' : 'main';
+                return d.main ? '' : 'main';
               });
 
             this.append('text')
@@ -139,8 +139,8 @@
                 return 5 + chart._baseRadius + d.children.length;
               })
               .attr('dy', '.35em')
-              .classed('main', function(d) {
-                return d.parents.length ? '' : 'main';
+              .attr('class', function(d) {
+                return d.main ? '' : 'main';
               })
               .text(function(d) {
                 return d.filename;
