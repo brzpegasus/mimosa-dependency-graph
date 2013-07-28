@@ -1,44 +1,109 @@
 body {
-  margin: 0;
+  margin: 6px 10px;
   overflow: hidden;
+}
+
+.dropdown-menu > li > span {
+  display: block;
+  padding: 3px 20px;
+  color: #333;
+  line-height: 1.4;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.dropdown-menu > li > span:hover {
+  background-color: #91CC27;
+}
+
+.navbar-nav {
+  white-space: nowrap;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+.navbar-inverse .navbar-info,
+.navbar-inverse .navbar-brand {
+  display: block;
+  padding: 15px 15px;
+  margin-right: auto;
+  margin-left: auto;
+  font-weight: normal;
+  line-height: 20px;
+  color: #fff;
+}
+
+.data {
+  color: #91CC27;
+}
+
+.hidden {
+  display: none;
 }
 
 path.link {
   fill: none;
-  stroke: #DED9AF;
+  stroke: #ccc;
   stroke-width: 1.5px;
+}
+
+path.link.focused-child,
+path.link.focused-parent {
+  stroke: #555;
 }
 
 marker.arrow {
-  fill: #DED9AF;
+  fill: #555;
 }
 
-circle {
-  fill: #C4C5CA;
-  stroke: #98A0A7;
-  stroke-width: 1.5px;
+.node circle {
+  fill: #91CC27;
+  stroke: #555;
+  stroke-width: 1px;
 }
 
-circle.main {
-  fill: #4682B4;
-  stroke: #0F4080;
-  stroke-width: 2px;
+.node circle.main {
+  fill: #555;
 }
 
-text {
-  fill: #71747E;
-  font: 11px sans-serif;
+.node circle.leaf {
+  fill: #999;
+}
+
+.node.focused circle {
+  fill: #555;
+  stroke: #333;
+  stroke-width: 2.5px;
+}
+
+.node.focused-child circle {
+  fill: #ccc;
+  stroke-width: 2.5px;
+}
+
+.node.focused-parent circle {
+  stroke-width: 2.5px;
+}
+
+.node text {
+  fill: #999;
+  font: 12px sans-serif;
   pointer-events: none;
 }
 
-text.main {
-  fill: #0F4080;
+.node text.main {
+  fill: #333;
   font-size: 16px;
   font-weight: bold;
 }
 
-text.shadow {
-  stroke: #fff;
-  stroke-width: 2px;
-  opacity: 0.9;
+.node.focused text {
+  fill: #333;
+  font-size: 14px;
+  font-weight: bold;
+  text-shadow: 1px 1px 3px #ccc, 0 0 1em #fff, 0 0 0.2em #fff;
+}
+
+.node.focused text.main {
+  font-size: 16px;
 }

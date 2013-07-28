@@ -4,6 +4,12 @@
 
   var d3 = window.d3;
 
+  d3.selection.prototype.moveToFront = function() {
+    return this.each(function() {
+      this.parentNode.appendChild(this);
+    });
+  };
+
   /**
    * DependencyGraph object.
    *
@@ -17,22 +23,21 @@
 
       this._width = this.base.attr('width') || window.innerWidth;
       this._height = this.base.attr('height') || window.innerHeight;
-      this._baseRadius = 6;
+      this._baseRadius = 8;
+      this._showLabels = true;
 
-      // Zooming (with mouse wheel, ctrl + dblclick / shift + dblclick, or panning gestures)
+      // Zooming (with mouse wheel, dblclick / shift + dblclick, or panning gestures)
       var zoom = d3.behavior.zoom()
         .scaleExtent([1, 8])
         .on('zoom', function() {
           chart.baseGroup.attr('transform', 'translate(' + d3.event.translate + ') scale(' + d3.event.scale + ')');
         });
 
-      this.baseGroup = this.base
-        .call(zoom)
-        .append('g');
+      this.baseGroup = this.base.call(zoom).append('g');
 
       // Force-directed layout
       this.force = d3.layout.force()
-        .linkDistance(80)
+        .linkDistance(60)
         .charge(-300)
         .on('tick', function() {
           chart.base.selectAll('.link').attr('d', function(d) {
@@ -51,21 +56,6 @@
           });
         });
 
-      // Link layer -- defines the path elements that join the different nodes
-      this.layer('links', this.baseGroup.append('g'), {
-        dataBind: function(data) {
-          return this.selectAll('path').data(data.links);
-        },
-        insert: function() {
-          return this.append('path').attr('class', 'link');
-        },
-        events: {
-          enter: function() {
-            return this.attr('marker-end', 'url(#end)');
-          }
-        }
-      });
-
       // Arrow layer -- shows the directionality of the dependencies
       this.layer('arrows', this.baseGroup.append('defs'), {
         dataBind: function(data) {
@@ -77,7 +67,7 @@
             .attr('viewBox', '0 -5 10 10')
             .attr('refX', 20)
             .attr('refY', -1.5)
-            .attr('markerWidth', 6)
+            .attr('markerWidth', 5)
             .attr('markerHeight', 6)
             .attr('orient', 'auto')
             .attr('class', 'arrow');
@@ -86,10 +76,32 @@
             .attr('d', 'M0,-5L10,0L0,5');
 
           return marker;
+        }
+      });
+
+      // Link layer -- defines the path elements that join the different nodes
+      this.layer('links', this.baseGroup.append('g'), {
+        dataBind: function(data) {
+          return this.selectAll('path').data(data.links);
+        },
+        insert: function() {
+          return this.append('path').attr('class', 'link');
         },
         events: {
           enter: function() {
-            return this;
+            return this
+              .attr('data-source', function(d) { return d.source; })
+              .attr('data-target', function(d) { return d.target; })
+              .attr('marker-end', 'url(#end)');
+          },
+          merge: function() {
+            return this.style('opacity', 0);
+          },
+          'merge:transition': function() {
+            return this.duration(500).style('opacity', 1);
+          },
+          'exit:transition': function() {
+            return this.duration(500).style('opacity', 0).remove();
           }
         }
       });
@@ -97,11 +109,12 @@
       // Node layer -- each node represents a module in the dependency graph
       this.layer('nodes', this.baseGroup.append('g'), {
         dataBind: function(data) {
-          return this.selectAll('.node').data(data.nodes);
+          return this.selectAll('.node')
+            .data(data.nodes, function(d) {
+              return d.filename;
+            });
         },
         insert: function() {
-          var chart = this.chart();
-
           var node = this.append('g')
             .attr('class', 'node')
             .on('touchstart', function() {
@@ -116,22 +129,20 @@
         },
         events: {
           enter: function() {
+            this.attr('id', function(d) { return d.id; });
+
             this.append('circle')
               .attr('r', function(d) {
-                return chart._baseRadius + d.children.length;
+                return chart._baseRadius + d.children.length * 1.5;
               })
               .attr('class', function(d) {
-                return d.main ? '' : 'main';
-              });
-
-            this.append('text')
-              .attr('x', function(d) {
-                return 5 + chart._baseRadius + d.children.length;
+                return d.main ? 'main' : !d.children.length ? 'leaf' : '';
               })
-              .attr('dy', '.35em')
-              .classed('shadow', true)
-              .text(function(d) {
-                return d.filename;
+              .on('mouseover', function(d) {
+                chart.highlightNode(d);
+              })
+              .on('mouseout', function(d) {
+                chart.unhighlightNode(d);
               });
 
             this.append('text')
@@ -140,13 +151,23 @@
               })
               .attr('dy', '.35em')
               .attr('class', function(d) {
-                return d.main ? '' : 'main';
+                return d.main ? 'main' : '';
               })
+              .classed('hidden', !chart._showLabels)
               .text(function(d) {
-                return d.filename;
+                return d.basename || d.filename;
               });
 
             return this;
+          },
+          merge: function() {
+            return this.style('opacity', 0);
+          },
+          'merge:transition': function() {
+            return this.duration(500).style('opacity', 1);
+          },
+          'exit:transition': function() {
+            return this.duration(500).style('opacity', 0).remove();
           }
         }
       });
@@ -159,6 +180,8 @@
      * @returns {void}
      */
     draw: function(data) {
+      this.data = data;
+
       var sup = this.constructor.__super__;
       sup.draw.call(this, data);
 
@@ -179,15 +202,31 @@
      * @returns {Object} The transformed data.
      */
     transform: function(data) {
+      if (data.processed) {
+        return data;
+      }
+
       data.nodes.forEach(function(node) {
+        if (node.main) {
+          node.x = this._width / 2;
+          node.y = this._height / 4;
+          node.fixed = true;
+        }
+        node.id = node.filename.replace(/\//g, '-');
+        node.basename = node.filename.replace(/.*\//, '')
         node.parents = [];
         node.children = [];
-      });
+      }, this);
 
       data.links.forEach(function(link) {
-        data.nodes[link.source].children.push(link.target);
-        data.nodes[link.target].parents.push(link.source);
+        var sourceNode = data.nodes[link.source];
+        var targetNode = data.nodes[link.target];
+
+        sourceNode.children.push(link.target);
+        targetNode.parents.push(link.source);
       });
+
+      data.processed = true;
 
       return data;
     },
@@ -199,8 +238,11 @@
      * @returns {void}
      */
     resize: function(width, height) {
-      this._width = width || this._width;
-      this._height = height || this._height;
+      var oldWidth = this._width,
+          oldHeight = this._height;
+
+      this._width = width || oldWidth;
+      this._height = height || oldHeight;
 
       this.base
         .attr('width', this._width)
@@ -208,7 +250,63 @@
 
       this.force
         .size([this._width, this._height])
-        .resume();
+        .start();
+    },
+
+    /**
+     * Toggles the display of node labels.
+     * @returns {void}
+     */
+    toggleLabels: function() {
+      this._showLabels = !this._showLabels;
+      this.base.selectAll('text').classed('hidden', !this._showLabels);
+    },
+
+    /**
+     * Highlight the node specified by the given data element
+     * as well as any related parents and children.
+     * @param {Object} d The node data element
+     * @return {void}
+     */
+    highlightNode: function(d) {
+      var sel = d3.select('#' + d.id);
+      sel.moveToFront();
+      sel.classed('focused', true);
+
+      var selText = d3.select('#' + d.id + ' text');
+      selText.text(d.filename);
+      if (!this._showLabels) {
+        selText.classed('hidden', false);
+      }
+
+      this.force.links().forEach(function(link) {
+        if (link.source.id === d.id) {
+          d3.select('#' + link.target.id).classed('focused-child', true);
+          d3.selectAll('.link[data-source="' + link.source.index + '"]').classed('focused-child', true);
+        } else if (link.target.id === d.id) {
+          d3.select('#' + link.source.id).classed('focused-parent', true);
+          d3.selectAll('.link[data-target="' + link.target.index + '"]').classed('focused-parent', true);
+        }
+      });
+    },
+
+    /**
+     * Unhighlight the node specified by the given data element
+     * as well as any related parents and children.
+     * @param {Object} d The node data element
+     * @return {void}
+     */
+    unhighlightNode: function(d) {
+      d3.select('#' + d.id).classed('focused', false);
+
+      var selText = d3.select('#' + d.id + ' text');
+      selText.text(d.basename);
+      if (!this._showLabels) {
+        selText.classed('hidden', true);
+      }
+
+      d3.selectAll('.focused-child').classed('focused-child', false);
+      d3.selectAll('.focused-parent').classed('focused-parent', false);
     }
   });
 }(this));

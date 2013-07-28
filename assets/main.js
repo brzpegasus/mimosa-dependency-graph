@@ -16,7 +16,38 @@
     chart.resize(window.innerWidth, window.innerHeight);
   });
 
-  // Render the chart
-  chart.draw(data);
+  // Toggle label display
+  $('#show-labels-checkbox').attr('checked', true).on('change', function() {
+    chart.toggleLabels();
+  });
+
+  // Switch main view
+  Object.keys(data).forEach(function(main, index) {
+    $('<li>')
+      .append('<span>' + main + '</span>')
+      .appendTo('#main-files')
+      .click(function() {
+        selectMain(main);
+      });
+
+    if (index === 0) {
+      selectMain(main);
+    }
+  });
+
+  function selectMain(main) {
+    updateStats(main);
+    renderGraph(main);
+  }
+
+  function updateStats(main) {
+    var $mainInfo = $('<span>').attr('class', 'data').text(main);
+    var $nodeInfo = $('<span>').attr('class', 'data').text(data[main].nodes.length);
+    $('#stats').empty().append('Root Node: ', $mainInfo, ' Total Nodes: ', $nodeInfo);
+  }
+
+  function renderGraph(main) {
+    chart.draw(data[main]);
+  }
 
 }(this));
