@@ -4,11 +4,21 @@
 
   var d3 = window.d3;
 
+  /**
+   * Moves an element to the front by making it the last child.
+   */
   d3.selection.prototype.moveToFront = function() {
     return this.each(function() {
       this.parentNode.appendChild(this);
     });
   };
+
+  /**
+   * Returns a number whose value is limited to the given range.
+   */
+  function clamp(x, min, max) {
+    return Math.min(Math.max(x, min), max);
+  }
 
   /**
    * DependencyGraph object.
@@ -23,9 +33,10 @@
 
       this._width = this.base.attr('width') || window.innerWidth;
       this._height = this.base.attr('height') || window.innerHeight;
-      this._baseRadius = 8;
       this._showLabels = false;
 
+      this.baseNodeRadius = 6;
+      this.maxNodeRadius = 30;
 
       // Zooming (with mouse wheel, dblclick / shift + dblclick, or panning gestures)
       var zoom = d3.behavior.zoom()
@@ -36,26 +47,7 @@
 
       this.baseGroup = this.base.call(zoom).append('g');
 
-      // Force-directed layout
-      this.force = d3.layout.force()
-        .linkDistance(60)
-        .charge(-300)
-        .on('tick', function() {
-          chart.base.selectAll('.link').attr('d', function(d) {
-            var dx = d.target.x - d.source.x,
-                dy = d.target.y - d.source.y,
-                dr = Math.sqrt(dx * dx + dy * dy);
-            return 'M' + 
-                d.source.x + ',' + 
-                d.source.y + 'A' + 
-                dr + ',' + dr + ' 0 0,1 ' + 
-                d.target.x + ',' + 
-                d.target.y;
-          });
-          chart.base.selectAll('.node').attr('transform', function(d) {
-            return 'translate(' + d.x + ',' + d.y + ')';
-          });
-        });
+      this.force = d3.layout.force();
 
       // Arrow layer -- shows the directionality of the dependencies
       this.layer('arrows', this.baseGroup.append('defs'), {
@@ -133,9 +125,7 @@
             this.attr('id', function(d) { return d.id; });
 
             this.append('circle')
-              .attr('r', function(d) {
-                return chart._baseRadius + d.children.length * 1.5;
-              })
+              .attr('r', function(d) { return chart.getNodeRadius(d); })
               .attr('class', function(d) {
                 return d.main ? 'main' : !d.children.length ? 'leaf' : '';
               })
@@ -147,9 +137,7 @@
               });
 
             this.append('text')
-              .attr('x', function(d) {
-                return 5 + chart._baseRadius + d.children.length;
-              })
+              .attr('x', function(d) { return 5 + chart.getNodeRadius(d); })
               .attr('dy', '.35em')
               .attr('class', function(d) {
                 return d.main ? 'main' : '';
@@ -191,9 +179,16 @@
         .attr('height', this._height);
 
       this.force
+        .size([this._width, this._height])
         .nodes(data.nodes)
         .links(data.links)
-        .size([this._width, this._height])
+        .linkDistance(40)
+        .friction(0.5)
+        .gravity(clamp(data.nodes.length * 0.01, 0.1, 0.7))
+        .charge($.proxy(function(d) {
+          return -(this.getNodeRadius(d) * 100);
+        }, this))
+        .on('tick', $.proxy(this.onTick, this))
         .start();
     },
 
@@ -230,6 +225,40 @@
       data.processed = true;
 
       return data;
+    },
+
+    /**
+     * Updates the position of nodes and links at each step of the
+     * force layout simulation.
+     * @returns {void}
+     */
+    onTick: function() {
+      this.base.selectAll('.link')
+        .attr('d', function(d) {
+          var dx = d.target.x - d.source.x,
+              dy = d.target.y - d.source.y,
+              dr = Math.sqrt(dx * dx + dy * dy);
+          return 'M' +
+              d.source.x + ',' +
+              d.source.y + 'A' +
+              dr + ',' + dr + ' 0 0,1 ' +
+              d.target.x + ',' +
+              d.target.y;
+        });
+
+      this.base.selectAll('.node')
+        .attr('transform', function(d) {
+          return 'translate(' + d.x + ',' + d.y + ')';
+        });
+    },
+
+    /**
+     * Returns the radius of a node from the given data point.
+     * @param {Object} d The node data point
+     * @returns {int}
+     */
+    getNodeRadius: function(d) {
+      return this.baseNodeRadius + clamp(d.children.length, 0, this.maxNodeRadius);
     },
 
     /**
