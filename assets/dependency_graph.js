@@ -24,7 +24,8 @@
       this._width = this.base.attr('width') || window.innerWidth;
       this._height = this.base.attr('height') || window.innerHeight;
       this._baseRadius = 8;
-      this._showLabels = true;
+      this._showLabels = false;
+
 
       // Zooming (with mouse wheel, dblclick / shift + dblclick, or panning gestures)
       var zoom = d3.behavior.zoom()

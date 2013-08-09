@@ -17,7 +17,7 @@
   });
 
   // Toggle label display
-  $('#show-labels-checkbox').attr('checked', true).on('change', function() {
+  $('#show-labels-checkbox').attr('checked', false).on('change', function() {
     chart.toggleLabels();
   });
 
