@@ -123,23 +123,26 @@
         },
         events: {
           enter: function() {
-            this.attr('id', function(d) { return d.id; });
-
             this.append('circle')
-              .attr('class', function(d) {
-                return d.main ? 'main' : !d.children.length ? 'leaf' : '';
+              .classed('main', function(d) {
+                return d.main;
               })
               .on('mouseover', function(d) {
-                chart.highlightNode(d);
+                chart.toggleFullLabel(d, true);
               })
               .on('mouseout', function(d) {
-                chart.unhighlightNode(d);
+                if (chart._focusedNode !== d) {
+                  chart.toggleFullLabel(d, false);
+                }
+              })
+              .on('click', function(d) {
+                chart.toggleNodeFocus(d);
               });
 
             this.append('text')
               .attr('dy', '.35em')
-              .attr('class', function(d) {
-                return d.main ? 'main' : '';
+              .classed('main', function(d) {
+                return d.main;
               })
               .classed('hidden', !chart._showLabels)
               .text(function(d) {
@@ -181,6 +184,7 @@
      */
     draw: function(data) {
       this.data = data;
+      this.resetFocus();
 
       var sup = this.constructor.__super__;
       sup.draw.call(this, data);
@@ -219,7 +223,6 @@
           node.y = this._height / 4;
           node.fixed = true;
         }
-        node.id = node.filename.replace(/\//g, '-');
         node.basename = node.filename.replace(/.*\//, '')
         node.parents = [];
         node.children = [];
@@ -229,8 +232,8 @@
         var sourceNode = data.nodes[link.source];
         var targetNode = data.nodes[link.target];
 
-        sourceNode.children.push(link.target);
-        targetNode.parents.push(link.source);
+        sourceNode.children.push(targetNode.filename);
+        targetNode.parents.push(sourceNode.filename);
       });
 
       data.processed = true;
@@ -316,50 +319,94 @@
     },
 
     /**
-     * Highlight the node specified by the given data element
-     * as well as any related parents and children.
-     * @param {Object} d The node data element
+     * Whether or not to show the full filename for a given node.
+     * @param {Object} d The data point for the node
      * @return {void}
      */
-    highlightNode: function(d) {
-      var sel = d3.select('#' + d.id);
-      sel.moveToFront();
-      sel.classed('focused', true);
+    toggleFullLabel: function(d, fullLabel) {
+      var node = this.base.selectAll('.node')
+        .filter(function(n) { return n === d; });
 
-      var selText = d3.select('#' + d.id + ' text');
-      selText.text(d.filename);
-      if (!this._showLabels) {
-        selText.classed('hidden', false);
+      if (fullLabel) {
+        node.moveToFront();
+        node.select('text').text(d.filename).classed('full-text', true).classed('hidden', false);
+      } else {
+        node.select('text').text(d.basename).classed('full-text', false).classed('hidden', !this._showLabels);
       }
-
-      this.force.links().forEach(function(link) {
-        if (link.source.id === d.id) {
-          d3.select('#' + link.target.id).classed('focused-child', true);
-          d3.selectAll('.link[data-source="' + link.source.index + '"]').classed('focused-child', true);
-        } else if (link.target.id === d.id) {
-          d3.select('#' + link.source.id).classed('focused-parent', true);
-          d3.selectAll('.link[data-target="' + link.target.index + '"]').classed('focused-parent', true);
-        }
-      });
     },
 
     /**
-     * Unhighlight the node specified by the given data element
-     * as well as any related parents and children.
-     * @param {Object} d The node data element
-     * @return {void}
+     * Adds or removes focus from the given node.
+     * @param {Object} node The data point for the node
+     * @returns {void}
      */
-    unhighlightNode: function(d) {
-      d3.select('#' + d.id).classed('focused', false);
-
-      var selText = d3.select('#' + d.id + ' text');
-      selText.text(d.basename);
-      if (!this._showLabels) {
-        selText.classed('hidden', true);
+    toggleNodeFocus: function(d) {
+      this.resetFocus();
+      if (this._focusedNode === d) {
+        this._focusedNode = null;
+        return;
       }
 
-      d3.selectAll('.focused-child').classed('focused-child', false);
-      d3.selectAll('.focused-parent').classed('focused-parent', false);
+      // Focus on the selected node
+      this.toggleFullLabel(d, true);
+      this._focusedNode = d;
+
+      var node = this.base.selectAll('.node')
+        .filter(function(n) { return n === d; })
+        .moveToFront();
+
+      node.select('circle').classed('focused', true);
+      node.select('text').classed('focused', true);
+
+      // Highlight all parent nodes
+      this.base.selectAll('.node')
+        .filter(function(n) { return d.parents.indexOf(n.filename) > -1; })
+        .selectAll('circle')
+        .classed('focused-parent', true);
+
+      // Highlight all child nodes
+      this.base.selectAll('.node')
+        .filter(function(n) { return d.children.indexOf(n.filename) > -1; })
+        .selectAll('circle')
+        .classed('focused-child', true);
+
+      // Dim all unrelated nodes
+      this.base.selectAll('.node')
+        .selectAll('circle')
+        .style('opacity', function(n) {
+          return n === d || d.parents.indexOf(n.filename) > -1 || d.children.indexOf(n.filename) > -1 ? 1 : 0.2;
+        });
+
+      // Hide all unrelated links
+      this.base.selectAll('.link')
+        .classed('hidden', function(l) {
+          return l.source !== d && l.target !== d;
+        });
+    },
+
+    /**
+     * Resets the graph, removing all focus
+     * @returns {void}
+     */
+    resetFocus: function() {
+      if (!this._focusedNode) {
+        return;
+      }
+
+      this.toggleFullLabel(this._focusedNode, false);
+
+      this.base.selectAll('.node')
+        .selectAll('circle')
+        .style('opacity', 1)
+        .classed('focused', false)
+        .classed('focused-parent', false)
+        .classed('focused-child', false);
+
+      this.base.selectAll('text')
+        .classed('focused', false);
+
+      this.base.selectAll('.link')
+        .classed('hidden', false);
     }
   });
 }(this));

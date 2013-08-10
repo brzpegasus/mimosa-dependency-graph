@@ -35,7 +35,7 @@ body {
   padding: 0 15px;
 }
 
-.data {
+.navbar .data {
   color: #91CC27;
 }
 
@@ -49,63 +49,49 @@ path.link {
   stroke-width: 1.5px;
 }
 
-path.link.focused-child,
-path.link.focused-parent {
-  stroke: #555;
-}
-
 marker.arrow {
   fill: #999;
 }
 
-.node circle {
+circle {
   fill: #91CC27;
   stroke: #555;
   stroke-width: 1px;
 }
 
-.node circle.main {
+circle.main,
+circle.focused {
   fill: #555;
 }
 
-.node circle.leaf {
-  fill: #999;
-}
-
-.node.focused circle {
-  fill: #555;
+circle.focused {
   stroke: #333;
   stroke-width: 2.5px;
 }
 
-.node.focused-child circle {
-  fill: #ccc;
-  stroke-width: 2.5px;
+circle.focused-child {
+  fill: #999;
 }
 
-.node.focused-parent circle {
-  stroke-width: 2.5px;
+circle.focused-parent {
+  fill: #91CC27;
 }
 
-.node text {
+text {
   fill: #999;
   font: 12px sans-serif;
   pointer-events: none;
 }
 
-.node text.main {
+text.main,
+text.full-text {
   fill: #333;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: bold;
+  text-shadow: 1px 1px 3px #eee, 0 0 1em #fff, 0 0 0.2em #fff;
 }
 
-.node.focused text {
-  fill: #333;
-  font-size: 14px;
-  font-weight: bold;
-  text-shadow: 1px 1px 3px #ccc, 0 0 1em #fff, 0 0 0.2em #fff;
-}
-
-.node.focused text.main {
-  font-size: 16px;
+text.main,
+text.focused  {
+  font-size: 18px;
 }
