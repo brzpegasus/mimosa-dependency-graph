@@ -21,12 +21,22 @@
     chart.toggleLabels();
   });
 
+  // Vary the size of the circles based on the number of dependencies vs. dependent nodes
+  $('#circle-size').children().click(function() {
+    $(this).addClass('active').siblings().removeClass('active');
+
+    var value = $(this).attr('data-circle-size');
+    chart.sizeCirclesByDependents(value === 'num-dependents');
+  });
+
   // Switch main view
   Object.keys(data).forEach(function(main, index) {
     $('<li>')
-      .append('<span>' + main + '</span>')
+      .append($('<span>').text(main))
+      .toggleClass('active', index === 0)
       .appendTo('#main-files')
       .click(function() {
+        $(this).addClass('active').siblings().removeClass('active');
         selectMain(main);
       });
 

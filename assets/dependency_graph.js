@@ -34,9 +34,10 @@
       this._width = this.base.attr('width') || window.innerWidth;
       this._height = this.base.attr('height') || window.innerHeight;
       this._showLabels = false;
+      this._sizeCirclesByDependents = false;
 
       this.baseNodeRadius = 6;
-      this.maxNodeRadius = 30;
+      this.maxNodeRadius = 25;
 
       // Zooming (with mouse wheel, dblclick / shift + dblclick, or panning gestures)
       var zoom = d3.behavior.zoom()
@@ -125,7 +126,6 @@
             this.attr('id', function(d) { return d.id; });
 
             this.append('circle')
-              .attr('r', function(d) { return chart.getNodeRadius(d); })
               .attr('class', function(d) {
                 return d.main ? 'main' : !d.children.length ? 'leaf' : '';
               })
@@ -137,7 +137,6 @@
               });
 
             this.append('text')
-              .attr('x', function(d) { return 5 + chart.getNodeRadius(d); })
               .attr('dy', '.35em')
               .attr('class', function(d) {
                 return d.main ? 'main' : '';
@@ -150,6 +149,18 @@
             return this;
           },
           merge: function() {
+            // Size the circles according to the number of child or parent nodes
+            this.select('circle')
+              .attr('r', function(d) {
+                return chart.getNodeRadius(d);
+              });
+
+            // Set the x coordinate of the label based on the size of the circle
+            this.select('text')
+              .attr('x', function(d) {
+                return 5 + chart.getNodeRadius(d);
+              });
+
             return this.style('opacity', 0);
           },
           'merge:transition': function() {
@@ -186,7 +197,7 @@
         .friction(0.5)
         .gravity(clamp(data.nodes.length * 0.01, 0.1, 0.7))
         .charge($.proxy(function(d) {
-          return -(this.getNodeRadius(d) * 100);
+          return -(this.getNodeRadius(d) * 130);
         }, this))
         .on('tick', $.proxy(this.onTick, this))
         .start();
@@ -258,7 +269,19 @@
      * @returns {int}
      */
     getNodeRadius: function(d) {
-      return this.baseNodeRadius + clamp(d.children.length, 0, this.maxNodeRadius);
+      var r = this._sizeCirclesByDependents ? d.parents.length : d.children.length;
+      return this.baseNodeRadius + clamp(r, 0, this.maxNodeRadius);
+    },
+
+    /**
+     * Sizes the circles based on the number of dependents a file has
+     * instead of the number of dependencies.
+     * @param {boolean} value Whether to switch to this view
+     * @returns {void}
+     */
+    sizeCirclesByDependents: function(value) {
+      this._sizeCirclesByDependents = value;
+      this.draw(this.data);
     },
 
     /**
