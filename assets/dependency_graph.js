@@ -58,16 +58,16 @@
         insert: function() {
           var marker = this.append('marker')
             .attr('id', String)
-            .attr('viewBox', '0 -5 10 10')
-            .attr('refX', 20)
-            .attr('refY', -1.5)
-            .attr('markerWidth', 5)
+            .attr('viewBox', '0 -3 6 6')
+            .attr('refX', 5)
+            .attr('refY', 0)
+            .attr('markerWidth', 6)
             .attr('markerHeight', 6)
             .attr('orient', 'auto')
             .attr('class', 'arrow');
 
           marker.append('path')
-            .attr('d', 'M0,-5L10,0L0,5');
+            .attr('d', 'M0,-2L5,0L0,2');
 
           return marker;
         }
@@ -248,17 +248,27 @@
      */
     onTick: function() {
       this.base.selectAll('.link')
-        .attr('d', function(d) {
+        .attr('d', $.proxy(function(d) {
+          var tightness = -4.0;
+
           var dx = d.target.x - d.source.x,
               dy = d.target.y - d.source.y,
-              dr = Math.sqrt(dx * dx + dy * dy);
-          return 'M' +
-              d.source.x + ',' +
-              d.source.y + 'A' +
-              dr + ',' + dr + ' 0 0,1 ' +
-              d.target.x + ',' +
-              d.target.y;
-        });
+              dr = Math.sqrt(dx * dx + dy * dy),
+              qx = d.source.x + dx / 2.0 - dy / tightness,
+              qy = d.source.y + dy / 2.0 + dx / tightness;
+
+          var dqx = d.target.x - qx,
+              dqy = d.target.y - qy,
+              qr = Math.sqrt(dqx * dqx + dqy * dqy);
+
+          var offset = this.getNodeRadius(d.target),
+              tx = d.target.x - dqx/qr * offset,
+              ty = d.target.y - dqy/qr * offset;
+
+          return 'M' + d.source.x + ',' + d.source.y +
+            'Q' + qx + ',' + qy + ' ' + tx + ',' + ty;
+
+        }, this));
 
       this.base.selectAll('.node')
         .attr('transform', function(d) {
