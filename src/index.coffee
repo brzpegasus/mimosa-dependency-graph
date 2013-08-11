@@ -41,7 +41,6 @@ _generateGraphData = (mimosaConfig, options, next) ->
 
   formatData = (d, main) ->
     nodes: for node in d.nodes
-      main: node is main
       filename: formatFilename node, basePath
     links: for link in d.links
       source: d.nodes.indexOf link.source
