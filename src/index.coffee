@@ -1,11 +1,11 @@
 'use strict'
 
-path   = require 'path'
+path = require 'path'
 
 logger = require 'logmimosa'
 
 config = require './config'
-util  = require './util'
+util = require './util'
 
 mimosaRequire = null
 dataFile = null
