@@ -1,6 +1,7 @@
 {
   "name": "mimosa-dependency-graph",
-  "version": "0.0.1",
+  "version": "0.1.0",
+  "homepage": "https://github.com/brzpegasus/mimosa-dependency-graph",
   "author": "Estelle DeBlois",
   "description": "A module for visualizing AMD/RequireJS dependencies in Mimosa projects",
   "contributors": [
