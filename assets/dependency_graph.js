@@ -41,13 +41,12 @@
 
       // Zooming (with mouse wheel, dblclick / shift + dblclick, or panning gestures)
       var zoom = d3.behavior.zoom()
-        .scaleExtent([1, 8])
         .on('zoom', function() {
           chart.baseGroup.attr('transform', 'translate(' + d3.event.translate + ') scale(' + d3.event.scale + ')');
         });
-
       this.baseGroup = this.base.call(zoom).append('g');
 
+      // Force-directed layout
       this.force = d3.layout.force();
 
       // Arrow layer -- shows the directionality of the dependencies
@@ -73,7 +72,7 @@
         }
       });
 
-      // Link layer -- defines the path elements that join the different nodes
+      // Link layer -- defines the paths that join the different nodes
       this.layer('links', this.baseGroup.append('g'), {
         dataBind: function(data) {
           return this.selectAll('path').data(data.links);
@@ -83,10 +82,7 @@
         },
         events: {
           enter: function() {
-            return this
-              .attr('data-source', function(d) { return d.source; })
-              .attr('data-target', function(d) { return d.target; })
-              .attr('marker-end', 'url(#end)');
+            return this.attr('marker-end', 'url(#end)');
           },
           merge: function() {
             return this.style('opacity', 0);
@@ -111,12 +107,8 @@
         insert: function() {
           var node = this.append('g')
             .attr('class', 'node')
-            .on('touchstart', function() {
-              d3.event.stopPropagation();
-            })
-            .on('mousedown', function() {
-              d3.event.stopPropagation();
-            })
+            .on('touchstart', function() { d3.event.stopPropagation(); })
+            .on('mousedown', function() { d3.event.stopPropagation(); })
             .call(chart.force.drag);
 
           return node;
@@ -128,11 +120,11 @@
                 return d.main;
               })
               .on('mouseover', function(d) {
-                chart.toggleFullLabel(d, true);
+                chart.showFullLabel(d);
               })
               .on('mouseout', function(d) {
                 if (chart._focusedNode !== d) {
-                  chart.toggleFullLabel(d, false);
+                  chart.hideFullLabel(d);
                 }
               })
               .on('click', function(d) {
@@ -146,19 +138,17 @@
               })
               .classed('hidden', !chart._showLabels)
               .text(function(d) {
-                return d.basename || d.filename;
+                return d.basename;
               });
 
             return this;
           },
           merge: function() {
-            // Size the circles according to the number of child or parent nodes
             this.select('circle')
               .attr('r', function(d) {
                 return chart.getNodeRadius(d);
               });
 
-            // Set the x coordinate of the label based on the size of the circle
             this.select('text')
               .attr('x', function(d) {
                 return 5 + chart.getNodeRadius(d);
@@ -217,11 +207,12 @@
         return data;
       }
 
-      data.nodes.forEach(function(node) {
-        if (node.main) {
+      data.nodes.forEach(function(node, idx) {
+        if (idx === 0) {
           node.x = this._width / 2;
           node.y = this._height / 4;
           node.fixed = true;
+          node.main = true;
         }
         node.basename = node.filename.replace(/.*\//, '')
         node.parents = [];
@@ -262,8 +253,8 @@
               qr = Math.sqrt(dqx * dqx + dqy * dqy);
 
           var offset = this.getNodeRadius(d.target),
-              tx = d.target.x - dqx/qr * offset,
-              ty = d.target.y - dqy/qr * offset;
+              tx = d.target.x - dqx / qr * offset,
+              ty = d.target.y - dqy / qr * offset;
 
           return 'M' + d.source.x + ',' + d.source.y +
             'Q' + qx + ',' + qy + ' ' + tx + ',' + ty;
@@ -299,8 +290,8 @@
 
     /**
      * Resizes the graph and restarts the force layout simulation.
-     * @param {int} width The new width.
-     * @param {int} height The new height.
+     * @param {int} width The new width
+     * @param {int} height The new height
      * @returns {void}
      */
     resize: function(width, height) {
@@ -325,77 +316,99 @@
      */
     toggleLabels: function() {
       this._showLabels = !this._showLabels;
-      this.base.selectAll('text').classed('hidden', !this._showLabels);
+      this.base.selectAll('text')
+        .filter(function(d) {
+          return !d3.select(this).classed('focused');
+        })
+        .classed('hidden', !this._showLabels);
     },
 
     /**
-     * Whether or not to show the full filename for a given node.
+     * Shows the full filename for a given node.
      * @param {Object} d The data point for the node
      * @return {void}
      */
-    toggleFullLabel: function(d, fullLabel) {
-      var node = this.base.selectAll('.node')
-        .filter(function(n) { return n === d; });
-
-      if (fullLabel) {
-        node.moveToFront();
-        node.select('text').text(d.filename).classed('full-text', true).classed('hidden', false);
-      } else {
-        node.select('text').text(d.basename).classed('full-text', false).classed('hidden', !this._showLabels);
-      }
-    },
-
-    /**
-     * Adds or removes focus from the given node.
-     * @param {Object} node The data point for the node
-     * @returns {void}
-     */
-    toggleNodeFocus: function(d) {
-      this.resetFocus();
-      if (this._focusedNode === d) {
-        this._focusedNode = null;
-        return;
-      }
-
-      // Focus on the selected node
-      this.toggleFullLabel(d, true);
-      this._focusedNode = d;
-
+    showFullLabel: function(d) {
       var node = this.base.selectAll('.node')
         .filter(function(n) { return n === d; })
         .moveToFront();
 
-      node.select('circle').classed('focused', true);
-      node.select('text').classed('focused', true);
+      var text = node.select('text')
+        .text(d.filename)
+        .classed('full-text', true)
+        .style('opacity', 1);
 
-      // Highlight all parent nodes
-      this.base.selectAll('.node')
-        .filter(function(n) { return d.parents.indexOf(n.filename) > -1; })
-        .selectAll('circle')
-        .classed('focused-parent', true);
-
-      // Highlight all child nodes
-      this.base.selectAll('.node')
-        .filter(function(n) { return d.children.indexOf(n.filename) > -1; })
-        .selectAll('circle')
-        .classed('focused-child', true);
-
-      // Dim all unrelated nodes
-      this.base.selectAll('.node')
-        .selectAll('circle')
-        .style('opacity', function(n) {
-          return n === d || d.parents.indexOf(n.filename) > -1 || d.children.indexOf(n.filename) > -1 ? 1 : 0.2;
-        });
-
-      // Hide all unrelated links
-      this.base.selectAll('.link')
-        .classed('hidden', function(l) {
-          return l.source !== d && l.target !== d;
-        });
+      if (!this._showLabels) {
+        text.classed('hidden', false);
+      }
     },
 
     /**
-     * Resets the graph, removing all focus
+     * Hides the full filename for a given node.
+     * @param {Object} d The data point for the node
+     * @return {void}
+     */
+    hideFullLabel: function(d) {
+      var node = this.base.selectAll('.node')
+        .filter(function(n) { return n === d; });
+
+      var text = node.select('text')
+        .text(d.basename)
+        .classed('full-text', false);
+
+      if (this._focusedNode && !text.classed('focused') &&
+          !text.classed('focused-parent') && !text.classed('focused-child')) {
+        text.style('opacity', 0);
+      }
+
+      if (!this._showLabels) {
+        text.classed('hidden', true);
+      }
+    },
+
+    /**
+     * Toggles the focus for the given node.
+     * @param {Object} d The data point for the node
+     * @returns {void}
+     */
+    toggleNodeFocus: function(d) {
+      var oldFocusedNode = this._focusedNode;
+
+      this.resetFocus();
+
+      if (d === oldFocusedNode) {
+        return;
+      }
+
+      this._focusedNode = d;
+      this.showFullLabel(d);
+
+      // Highlight the selected node and all direct parents/children,
+      // and fade all other nodes.
+      this.base.selectAll('.node').each(function(n) {
+        var sel = d3.select(this);
+        if (n === d) {
+          sel.selectAll('circle, text').classed('focused', true);
+        } else if (d.parents.indexOf(n.filename) > -1) {
+          sel.selectAll('circle, text').classed('focused-parent', true);
+        } else if (d.children.indexOf(n.filename) > -1) {
+          sel.selectAll('circle, text').classed('focused-child', true);
+        } else {
+          sel.selectAll('circle').style('opacity', 0.2);
+          sel.selectAll('text').style('opacity', 0);
+        }
+      });
+
+      // Hide all unrelated links
+      this.base.selectAll('.link')
+        .filter(function(l) {
+          return l.source !== d && l.target !== d;
+        })
+        .style('opacity', 0);
+    },
+
+    /**
+     * Resets the graph, removing focus from all nodes.
      * @returns {void}
      */
     resetFocus: function() {
@@ -403,20 +416,11 @@
         return;
       }
 
-      this.toggleFullLabel(this._focusedNode, false);
+      this.hideFullLabel(this._focusedNode);
+      this.base.selectAll('circle, text').classed('focused focused-parent focused-child', false);
+      this.base.selectAll('circle, text, .link').style('opacity', 1);
 
-      this.base.selectAll('.node')
-        .selectAll('circle')
-        .style('opacity', 1)
-        .classed('focused', false)
-        .classed('focused-parent', false)
-        .classed('focused-child', false);
-
-      this.base.selectAll('text')
-        .classed('focused', false);
-
-      this.base.selectAll('.link')
-        .classed('hidden', false);
+      this._focusedNode = null;
     }
   });
 }(this));
