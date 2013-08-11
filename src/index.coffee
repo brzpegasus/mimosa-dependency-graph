@@ -19,13 +19,15 @@ registration = (mimosaConfig, register) ->
 
   ext = mimosaConfig.extensions
 
+  # Write static assets and generate graph data during a build
   register ['postBuild'], 'beforeOptimize',  _writeStaticAssets
   register ['postBuild'], 'beforeOptimize',  _generateGraphData
 
-  register ['add','update', 'remove'], 'afterWrite', _generateGraphData, ext.javascript
+  # Keep regenerating the graph data during a watch, if enabled
+  if mimosaConfig.dependencyGraph.watch.enabled
+    register ['add','update', 'remove'], 'afterWrite', _generateGraphData, ext.javascript
 
 # Generate a data object with node and link information for each main file.
-#
 # In this case, `nodes` is just an array of module names, while `links`
 # is an array of objects that specify the dependency between a module
 # (source) and another (target).
