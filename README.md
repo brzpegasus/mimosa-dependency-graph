@@ -34,7 +34,7 @@ When you initially run `mimosa build` or `mimosa watch`, the following directory
 |_ main.js
 |_ index.html
 ```
-It will also create a `data.js` file with the dependency data to feed into the graph.
+It will also create a `data.js` file with the dependency data to feed to the graph.
 
 During `mimosa watch`, any changes that you make to your scripts will trigger an update of `data.js`.
 
@@ -43,13 +43,13 @@ During `mimosa watch`, any changes that you make to your scripts will trigger an
 ### Default
 
 ```
-  dependencyGraph:
-    assetFolder: ".mimosa/dependency_graph"
-    safeAssets: []
+dependencyGraph:
+  assetFolder: ".mimosa/dependency_graph"
+  safeAssets: []
 ```
 
 - `assetFolder`: This is the folder that Mimosa will place all the dependency graph assets in.
-- `safeAssets`: You may customize any of the assets by providing your own version. To ensure that Mimosa does not override them, list them out in this array. You should only list filenames, not paths.
+- `safeAssets`: You may customize any of the assets by providing your own version. To ensure that Mimosa does not override them, list them out in this array. You only need to list filenames, not paths.
 
 ### Example
 
