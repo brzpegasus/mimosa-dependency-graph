@@ -50,7 +50,7 @@ path.link {
 }
 
 marker.arrow {
-  fill: #999;
+  fill: #777;
 }
 
 circle {
@@ -78,7 +78,7 @@ circle.focused-parent {
 }
 
 text {
-  fill: #999;
+  fill: #555;
   font: 12px sans-serif;
   pointer-events: none;
 }
@@ -88,7 +88,7 @@ text.full-text {
   fill: #333;
   font-size: 15px;
   font-weight: bold;
-  text-shadow: 1px 1px 3px #eee, 0 0 1em #fff, 0 0 0.2em #fff;
+  text-shadow: 1px 1px 3px #ccc, 0 0 1em #fff, 0 0 0.2em #fff;
 }
 
 text.main,
