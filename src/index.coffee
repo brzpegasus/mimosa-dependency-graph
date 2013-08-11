@@ -83,11 +83,6 @@ _findModuleDependencies = (registry, module, data) ->
       data.links.push { source: module, target: dep }
       _findModuleDependencies registry, dep, data
 
-_skipModule = (mimosaConfig, module) ->
-  excludeRegexes = mimosaConfig.dependencyGraph.excludeRegex
-  excludeStrings = mimosaConfig.dependencyGraph.exclude
-  (excludeRegexes? and module.match excludeRegexes) or (excludeStrings.indexOf(module) > -1)
-
 module.exports =
   registration: registration
   defaults:     config.defaults
