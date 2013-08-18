@@ -1,9 +1,11 @@
 mimosa-dependency-graph
 ===========
 
-## Overview
-
 This module will generate a d3 visualization of your application dependency graph.
+
+[~ **Screenshot** ~](http://brzpegasus.github.io/mimosa-dependency-graph/mimosa-dependency-graph.png)
+
+## Overview
 
 **mimosa-dependency-graph** utilizes the dependency information that Mimosa already exposes via its [mimosa-require](https://github.com/dbashford/mimosa-require) module to construct a force layout graph in d3.
 
