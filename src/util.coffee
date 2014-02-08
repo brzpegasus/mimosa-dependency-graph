@@ -4,12 +4,11 @@ fs     = require 'fs'
 path   = require 'path'
 
 wrench = require 'wrench'
-logger = require 'logmimosa'
 
 mkdirIfNotExists = (dir) ->
   unless fs.existsSync dir
     wrench.mkdirSyncRecursive dir, 0o0777
-    logger.info "mimosa-dependency-graph created directory [[ #{dir} ]]"
+    return true
 
 copyDir = (fromDir, toDir, filter) ->
   files = fs.readdirSync fromDir
@@ -31,7 +30,6 @@ copyFile = (inFile, outFile) ->
 
 writeFile = (file, data) ->
   fs.writeFileSync file, data
-  logger.info "mimosa-dependency-graph created file [[ #{file} ]]"
 
 exports.mkdirIfNotExists = mkdirIfNotExists
 exports.copyDir = copyDir

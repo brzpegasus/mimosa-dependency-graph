@@ -2,18 +2,19 @@
 
 path = require 'path'
 
-logger = require 'logmimosa'
-
 config = require './config'
 util = require './util'
 
+logger = null
 mimosaRequire = null
 dataFile = null
 
 registration = (mimosaConfig, register) ->
+  logger = mimosaConfig.log
+
   mimosaRequire = mimosaConfig.installedModules['mimosa-require']
   if not mimosaRequire
-    return logger.error "mimosa-dependency-graph is configured but cannot be used unless mimosa-require is installed and used."
+    return logger.error "[dependency-graph] This module cannot be used unless mimosa-require is installed and used."
   
   dataFile = path.join mimosaConfig.dependencyGraph.assetFolderFull, 'data.js'
 
@@ -61,6 +62,7 @@ _generateGraphData = (mimosaConfig, options, next) ->
 
   # Output the dependency graph data to a file in the assets folder
   util.writeFile dataFile, "window.MIMOSA_DEPENDENCY_DATA = #{JSON.stringify(data)}"
+  logger.info "[dependency-graph] Created file [[ #{dataFile} ]]"
 
   next()
 
@@ -68,7 +70,8 @@ _generateGraphData = (mimosaConfig, options, next) ->
 _writeStaticAssets = (mimosaConfig, options, next) ->
   config = mimosaConfig.dependencyGraph
 
-  util.mkdirIfNotExists config.assetFolderFull
+  if util.mkdirIfNotExists config.assetFolderFull
+    logger.info "[dependency-graph] Created directory [[ #{config.assetFolderFull} ]]"
 
   fromDir = path.join __dirname, '..', 'assets'
   toDir = config.assetFolderFull
